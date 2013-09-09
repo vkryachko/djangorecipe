@@ -47,6 +47,15 @@ class Recipe(object):
         options.setdefault('fcgi', 'false')
         options.setdefault('wsgilog', '')
         options.setdefault('logfile', '')
+        
+        relative_paths = options.get(
+            'relative-paths', buildout['buildout'].get('relative-paths', 'false'))
+        if relative_paths == 'true':
+            options['buildout-directory'] = buildout['buildout']['directory']
+            self._relative_paths = options['buildout-directory']
+        else:
+            self._relative_paths = ''
+            assert relative_paths == 'false'
 
     def install(self):
         base_dir = self.buildout['buildout']['directory']
@@ -84,6 +93,7 @@ class Recipe(object):
             [(self.options.get('control-script', self.name),
               'djangorecipe.manage', 'main')],
             ws, sys.executable, self.options['bin-directory'],
+            relative_paths=self._relative_paths,
             extra_paths=extra_paths,
             arguments="'%s.%s'" % (project, self.options['settings']),
             initialization=self.options['initialization'])
@@ -97,6 +107,7 @@ class Recipe(object):
                   'djangorecipe.test', 'main')],
                 working_set, sys.executable,
                 self.options['bin-directory'],
+                relative_paths=self._relative_paths,
                 extra_paths=extra_paths,
                 arguments="'%s.%s', %s" % (
                     self.options['project'],
@@ -173,6 +184,7 @@ class Recipe(object):
                         ws,
                         sys.executable,
                         self.options['bin-directory'],
+                        relative_paths=self._relative_paths,
                         extra_paths=extra_paths,
                         arguments="'%s.%s', logfile='%s'" % (
                             project, self.options['settings'],
