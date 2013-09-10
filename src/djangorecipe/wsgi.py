@@ -1,47 +1,40 @@
-import sys
+import os
 
 from django.core import management
+from django.core.servers.basehttp import get_internal_wsgi_application
 
 
 def main(settings_file, logfile=None):
-    try:
-        mod = __import__(settings_file)
-        components = settings_file.split('.')
-        for comp in components[1:]:
-            mod = getattr(mod, comp)
-
-    except ImportError as e:
-        sys.stderr.write("Error loading the settings module '%s': %s"
-                         % (settings_file, e))
-        sys.exit(1)
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", settings_file)
 
     # Setup settings
-    management.setup_environ(mod)
 
     if logfile:
-        import datetime
+        redirect_streams(logfile)
 
-        class logger(object):
-            def __init__(self, logfile):
-                self.logfile = logfile
+    return get_internal_wsgi_application()
 
-            def write(self, data):
-                self.log(data)
 
-            def writeline(self, data):
-                self.log(data)
+def redirect_streams(logfile):
+    import datetime
+    import sys
 
-            def log(self, msg):
-                line = '%s - %s\n' % (
-                    datetime.datetime.now().strftime('%Y%m%d %H:%M:%S'), msg)
-                fp = open(self.logfile, 'a')
-                try:
-                    fp.write(line)
-                finally:
-                    fp.close()
-        sys.stdout = sys.stderr = logger(logfile)
+    class logger(object):
+        def __init__(self, logfile):
+            self.logfile = logfile
 
-    from django.core.handlers.wsgi import WSGIHandler
+        def write(self, data):
+            self.log(data)
 
-    # Run WSGI handler for the application
-    return WSGIHandler()
+        def writeline(self, data):
+            self.log(data)
+
+        def log(self, msg):
+            line = '%s - %s\n' % (
+                datetime.datetime.now().strftime('%Y%m%d %H:%M:%S'), msg)
+            fp = open(self.logfile, 'a')
+            try:
+                fp.write(line)
+            finally:
+                fp.close()
+    sys.stdout = sys.stderr = logger(logfile)
