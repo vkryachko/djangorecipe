@@ -1,7 +1,6 @@
 import os
 
 from django.core import management
-from django.core.servers.basehttp import get_internal_wsgi_application
 
 
 def main(settings_file, logfile=None):
@@ -12,6 +11,7 @@ def main(settings_file, logfile=None):
     if logfile:
         redirect_streams(logfile)
 
+    from django.core.servers.basehttp import get_internal_wsgi_application
     return get_internal_wsgi_application()
 
 
